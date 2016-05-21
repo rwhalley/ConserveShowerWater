@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     int bufferSize;
     AudioRecord audioInput;
     short[] audioBuffer;
+    Complex[] fftArr;
 
 
     @Override
@@ -128,6 +129,26 @@ public class MainActivity extends AppCompatActivity {
     }
     public void printBuffer(){
         audioInput.read(audioBuffer, 0, bufferSize);
-        Log.d("MainActivity", "audioBuffer " + audioBuffer[128]);
+        Log.d("MainActivity", "audioBuffer " + doFFT(shortToDouble(audioBuffer))[128].re());
+    }
+
+    public double[] shortToDouble(short [] input){
+        double[] output = new double[bufferSize];
+
+        for (int j=0;j<bufferSize;j++) {
+            output[j] = (double)input[j];
+        }
+
+        return output;
+    }
+
+    public Complex [] doFFT(double [] input){
+        Complex [] fftTempArr = new Complex [bufferSize];
+        for(int i=0;i<bufferSize;i++){
+            fftArr[i]=new Complex (input[i],0);
+        }
+        fftArr = FFT.fft(fftTempArr);
+        return fftArr;
+
     }
 }
