@@ -13,8 +13,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-
-import java.sql.Time;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -25,7 +23,7 @@ public class MainActivity extends AppCompatActivity {
     private final int MY_PERMISSIONS_REQUEST_RECORD_AUDIO = 1;
     int channel_config;
     int format;
-    int sampleSize;
+    int sampleRate;
     int bufferSize;
     AudioRecord audioInput;
     short[] audioBuffer;
@@ -111,9 +109,9 @@ public class MainActivity extends AppCompatActivity {
     public void setupAudioRecord(){
         channel_config = AudioFormat.CHANNEL_IN_MONO;
         format = AudioFormat.ENCODING_PCM_16BIT;
-        sampleSize = 8000;
-        bufferSize = AudioRecord.getMinBufferSize(sampleSize, channel_config, format);
-        audioInput = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleSize, channel_config, format, bufferSize);
+        sampleRate = 8000;
+        bufferSize = AudioRecord.getMinBufferSize(sampleRate, channel_config, format);
+        audioInput = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, channel_config, format, bufferSize);
     }
 
     public void startAudioBuffer() {
