@@ -31,7 +31,8 @@ public class MainActivity extends AppCompatActivity {
     boolean isShowerOn = false;
     int bufferSize;
     final private double SMA_THRESHOLD = 4000;
-    final private int SMA_LENGTH = 360;
+    final private double THROW_OUT_THRESHOLD = 8000;
+    final private int SMA_LENGTH = 240;
 
     final private int SAMPLE_INTERVAL = 100; //how often analysis is run in milliseconds
 
@@ -180,8 +181,14 @@ public class MainActivity extends AppCompatActivity {
             sum+=Math.abs(FFTarr[i].re()); // take the absolute value of the FFT raw value
         }
         double bandPassAverage = sum/FFTarr.length;
-        Log.d(LOGTAG, "bandPassAverage: "+bandPassAverage);
-        mySMA.compute(bandPassAverage);
+        Log.d(LOGTAG, "bandPassAverage: " + bandPassAverage);
+
+        //Cut out loud samples, otherwise compute rolling average as usual
+        if(bandPassAverage>THROW_OUT_THRESHOLD){
+            mySMA.compute(mySMA.currentAverage());
+        }else {
+            mySMA.compute(bandPassAverage);
+        }
     }
 
 
