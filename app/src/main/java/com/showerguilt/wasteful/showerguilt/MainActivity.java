@@ -13,6 +13,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import java.util.Calendar;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -24,7 +26,12 @@ public class MainActivity extends AppCompatActivity {
     int channel_config;
     int format;
     int sampleRate;
+    Calendar showerCalendar; // keeps track of when to do things
+    boolean isShowerOn = false;
     int bufferSize;
+    final private double SMA_THRESHOLD = 10;
+    final private int SMA_LENGTH = 60;
+    SMA mySMA;
     AudioRecord audioInput;
     short[] audioBuffer;
     Complex[] fftArr;
@@ -77,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("MainActivity","Permission Granted");
                     setupAudioRecord();
                     startAudioBuffer();
+                    initializeSMA();
 
                 } else {
 
@@ -117,17 +125,59 @@ public class MainActivity extends AppCompatActivity {
     public void startAudioBuffer() {
         audioBuffer = new short[bufferSize];
         audioInput.startRecording();
-        new Timer().scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                printBuffer();
-            }
-        },0,100);
 
     }
+
+
     public void printBuffer(){
         audioInput.read(audioBuffer, 0, bufferSize);
         Log.d("MainActivity", "audioBuffer " + doFFT(shortToDouble(audioBuffer))[128].re());
+    }
+
+    public void initializeSMA(){
+        mySMA = new SMA(SMA_LENGTH);
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                updateSMA();
+            }
+        }, 0, 100);
+    }
+
+    public void updateSMA(){
+        Complex [] FFTarr = doFFT(shortToDouble(audioBuffer));
+        double sum = 0;
+        for(int i = 0; i<FFTarr.length;i++){
+            sum+=FFTarr[i].re();
+        }
+        double bandPassAverage = sum/FFTarr.length;
+        mySMA.compute(bandPassAverage);
+    }
+
+    public void compareCurrentSMAtoSMAThreshold(){
+        if (mySMA.currentAverage()>SMA_THRESHOLD && !isShowerOn){
+            //Initialize stuff to do once shower is on
+            isShowerOn=true;
+            startShower();
+        } else {
+            //Shutdown
+            isShowerOn=false;
+            endShower();
+        }
+    }
+
+    //Starts Clock once Shower is on.
+    public void startShower(){
+        showerCalendar=Calendar.getInstance();
+
+
+    }
+
+
+
+    //Finish Shower Routine
+    public void endShower(){
+
     }
 
     public double[] shortToDouble(short [] input){
@@ -148,5 +198,15 @@ public class MainActivity extends AppCompatActivity {
         fftArr = FFT.fft(fftTempArr);
         return fftArr;
 
+    }
+
+    public Complex[] bandPassFilter(Complex[] input, int lowerBound, int upperBound){
+        Complex [] output = new Complex[bufferSize-lowerBound-(bufferSize-upperBound)];
+        int outputIndex = 0;
+        for (int i=lowerBound;i<upperBound;i++){
+            output[outputIndex]=input[i];
+            outputIndex++;
+        }
+        return output;
     }
 }
