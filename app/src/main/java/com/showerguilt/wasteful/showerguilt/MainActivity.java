@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.media.MediaPlayer;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -31,6 +32,11 @@ public class MainActivity extends AppCompatActivity {
     int bufferSize;
     final private double SMA_THRESHOLD = 10;
     final private int SMA_LENGTH = 60;
+
+    //Band Pass Constants
+    final private int UPPER_BOUND = 100;
+    final private int LOWER_BOUND = 50;
+
     SMA mySMA;
     AudioRecord audioInput;
     short[] audioBuffer;
@@ -140,12 +146,23 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 updateSMA();
+                checkIfShowerOn();
             }
         }, 0, 100);
     }
 
+    public void playSound(){
+        final MediaPlayer mp = MediaPlayer.create(this, R.raw.bottom);
+        mp.start();
+    }
+
+    //Get FFT
+    //Apply BandPAss
+    //Compute Average Value
+    //Update Simple Moving Average (SMA)
     public void updateSMA(){
         Complex [] FFTarr = doFFT(shortToDouble(audioBuffer));
+        FFTarr = bandPassFilter(FFTarr);
         double sum = 0;
         for(int i = 0; i<FFTarr.length;i++){
             sum+=FFTarr[i].re();
@@ -154,7 +171,10 @@ public class MainActivity extends AppCompatActivity {
         mySMA.compute(bandPassAverage);
     }
 
-    public void compareCurrentSMAtoSMAThreshold(){
+
+    //Compares Current Simple Moving Average to a Threshold
+    //TODO consider adding a check for variance of signal
+    public void checkIfShowerOn(){
         if (mySMA.currentAverage()>SMA_THRESHOLD && !isShowerOn){
             //Initialize stuff to do once shower is on
             isShowerOn=true;
@@ -168,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
 
     //Starts Clock once Shower is on.
     public void startShower(){
-        showerCalendar=Calendar.getInstance();
+        playSound();
 
 
     }
@@ -190,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
         return output;
     }
 
-    public Complex [] doFFT(double [] input){
+    public Complex []doFFT(double [] input){
         Complex [] fftTempArr = new Complex [bufferSize];
         for(int i=0;i<bufferSize;i++){
             fftArr[i]=new Complex (input[i],0);
@@ -200,10 +220,10 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public Complex[] bandPassFilter(Complex[] input, int lowerBound, int upperBound){
-        Complex [] output = new Complex[bufferSize-lowerBound-(bufferSize-upperBound)];
+    public Complex[] bandPassFilter(Complex[] input){
+        Complex [] output = new Complex[bufferSize-LOWER_BOUND-(bufferSize-UPPER_BOUND)];
         int outputIndex = 0;
-        for (int i=lowerBound;i<upperBound;i++){
+        for (int i=LOWER_BOUND;i<UPPER_BOUND;i++){
             output[outputIndex]=input[i];
             outputIndex++;
         }
