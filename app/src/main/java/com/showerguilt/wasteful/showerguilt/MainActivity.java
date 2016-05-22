@@ -28,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
     int channel_config;
     int format;
     int sampleRate;
-    Calendar showerCalendar; // keeps track of when to do things
     boolean isShowerOn = false;
     int bufferSize;
     final private double SMA_THRESHOLD = 100;
@@ -47,10 +46,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(LOGTAG,"MainActivity Created");
         setContentView(R.layout.activity_main);
-        getPermissions();
-
-
+        getPermissions(); // for Marshmallow +
     }
 
 
@@ -74,8 +72,9 @@ public class MainActivity extends AppCompatActivity {
                         MY_PERMISSIONS_REQUEST_RECORD_AUDIO);
             }
         } else {
-            setupAudioRecord();
-            startAudioBuffer();}
+            Log.d("MainActivity","Permission Already Granted");
+            followingPermissions();
+        }
     }
 
     public void onRequestPermissionsResult(int requestCode,
@@ -88,10 +87,8 @@ public class MainActivity extends AppCompatActivity {
 
                     // permission was granted, yay!
                     // DO STUFF HERE
-                    Log.d("MainActivity","Permission Granted");
-                    setupAudioRecord();
-                    startAudioBuffer();
-                    initializeSMA();
+                    Log.d("MainActivity", "Permission Granted");
+                    followingPermissions();
 
                 } else {
 
@@ -104,6 +101,12 @@ public class MainActivity extends AppCompatActivity {
             // other 'case' lines to check for other
             // permissions this app might request
         }
+    }
+
+    public void followingPermissions(){
+        setupAudioRecord();
+        startAudioBuffer();
+        initializeSMA();
     }
 
     @Override
@@ -125,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
         channel_config = AudioFormat.CHANNEL_IN_MONO;
         format = AudioFormat.ENCODING_PCM_16BIT;
         sampleRate = 8000;
-        bufferSize = AudioRecord.getMinBufferSize(sampleRate, channel_config, format);
+        bufferSize = 256;//AudioRecord.getMinBufferSize(sampleRate, channel_config, format);
         audioInput = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, channel_config, format, bufferSize);
     }
 
@@ -146,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
         new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
+                printBuffer();
                 updateSMA();
                 checkIfShowerOn();
             }
@@ -219,7 +223,7 @@ public class MainActivity extends AppCompatActivity {
     public Complex []doFFT(double [] input){
         Complex [] fftTempArr = new Complex [bufferSize];
         for(int i=0;i<bufferSize;i++){
-            fftArr[i]=new Complex (input[i],0);
+            fftTempArr[i]=new Complex (input[i],0);
         }
         fftArr = FFT.fft(fftTempArr);
         return fftArr;
