@@ -30,12 +30,14 @@ public class MainActivity extends AppCompatActivity {
     int sampleRate;
     boolean isShowerOn = false;
     int bufferSize;
-    final private double SMA_THRESHOLD = 100;
-    final private int SMA_LENGTH = 60;
+    final private double SMA_THRESHOLD = 4000;
+    final private int SMA_LENGTH = 360;
+
+    final private int SAMPLE_INTERVAL = 100; //how often analysis is run in milliseconds
 
     //Band Pass Constants
-    final private int UPPER_BOUND = 100;
-    final private int LOWER_BOUND = 50;
+    final private int UPPER_BOUND = 255;
+    final private int LOWER_BOUND = 215;
 
     SMA mySMA;
     AudioRecord audioInput;
@@ -72,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
                         MY_PERMISSIONS_REQUEST_RECORD_AUDIO);
             }
         } else {
-            Log.d("MainActivity","Permission Already Granted");
+            Log.d("MainActivity", "Permission Already Granted");
             followingPermissions();
         }
     }
@@ -149,15 +151,19 @@ public class MainActivity extends AppCompatActivity {
         new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                printBuffer();
                 updateSMA();
                 checkIfShowerOn();
             }
-        }, 0, 100);
+        }, 0, SAMPLE_INTERVAL);
     }
 
     public void playSound(){
-        final MediaPlayer mp = MediaPlayer.create(this, R.raw.bottom);
+        final MediaPlayer mp = MediaPlayer.create(this, R.raw.start);
+        mp.start();
+    }
+
+    public void playEnd(){
+        final MediaPlayer mp = MediaPlayer.create(this, R.raw.end);
         mp.start();
     }
 
@@ -166,11 +172,12 @@ public class MainActivity extends AppCompatActivity {
     //Compute Average Value
     //Update Simple Moving Average (SMA)
     public void updateSMA(){
+        audioInput.read(audioBuffer, 0, bufferSize);
         Complex [] FFTarr = doFFT(shortToDouble(audioBuffer));
         FFTarr = bandPassFilter(FFTarr);
         double sum = 0;
         for(int i = 0; i<FFTarr.length;i++){
-            sum+=FFTarr[i].re();
+            sum+=Math.abs(FFTarr[i].re()); // take the absolute value of the FFT raw value
         }
         double bandPassAverage = sum/FFTarr.length;
         Log.d(LOGTAG, "bandPassAverage: "+bandPassAverage);
@@ -183,11 +190,12 @@ public class MainActivity extends AppCompatActivity {
     public void checkIfShowerOn(){
         double currentSMA = mySMA.currentAverage();
         Log.d(LOGTAG,"currentSMA: "+currentSMA);
+        Log.d(LOGTAG,"isShowerOn: "+ isShowerOn);
         if (currentSMA>SMA_THRESHOLD && !isShowerOn){
             //Initialize stuff to do once shower is on
             isShowerOn=true;
             startShower();
-        } else {
+        } else if (currentSMA<SMA_THRESHOLD && isShowerOn){
             //Shutdown
             isShowerOn=false;
             endShower();
@@ -207,6 +215,7 @@ public class MainActivity extends AppCompatActivity {
     //Finish Shower Routine
     public void endShower(){
         Log.d(LOGTAG,"Shower has ended.");
+        playEnd();
 
     }
 
