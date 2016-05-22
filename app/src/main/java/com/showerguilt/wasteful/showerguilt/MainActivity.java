@@ -24,13 +24,14 @@ public class MainActivity extends AppCompatActivity {
 
 
     private final int MY_PERMISSIONS_REQUEST_RECORD_AUDIO = 1;
+    String LOGTAG = "MainActivity";
     int channel_config;
     int format;
     int sampleRate;
     Calendar showerCalendar; // keeps track of when to do things
     boolean isShowerOn = false;
     int bufferSize;
-    final private double SMA_THRESHOLD = 10;
+    final private double SMA_THRESHOLD = 100;
     final private int SMA_LENGTH = 60;
 
     //Band Pass Constants
@@ -168,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
             sum+=FFTarr[i].re();
         }
         double bandPassAverage = sum/FFTarr.length;
+        Log.d(LOGTAG, "bandPassAverage: "+bandPassAverage);
         mySMA.compute(bandPassAverage);
     }
 
@@ -175,7 +177,9 @@ public class MainActivity extends AppCompatActivity {
     //Compares Current Simple Moving Average to a Threshold
     //TODO consider adding a check for variance of signal
     public void checkIfShowerOn(){
-        if (mySMA.currentAverage()>SMA_THRESHOLD && !isShowerOn){
+        double currentSMA = mySMA.currentAverage();
+        Log.d(LOGTAG,"currentSMA: "+currentSMA);
+        if (currentSMA>SMA_THRESHOLD && !isShowerOn){
             //Initialize stuff to do once shower is on
             isShowerOn=true;
             startShower();
@@ -188,6 +192,7 @@ public class MainActivity extends AppCompatActivity {
 
     //Starts Clock once Shower is on.
     public void startShower(){
+        Log.d(LOGTAG,"Shower is on.");
         playSound();
 
 
@@ -197,6 +202,7 @@ public class MainActivity extends AppCompatActivity {
 
     //Finish Shower Routine
     public void endShower(){
+        Log.d(LOGTAG,"Shower has ended.");
 
     }
 
